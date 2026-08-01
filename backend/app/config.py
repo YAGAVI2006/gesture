@@ -8,9 +8,9 @@ class SystemSettings(BaseModel):
     voice_control_enabled: bool = False
     presentation_mode: bool = False
     
-    gesture_sensitivity: float = 0.70  # min confidence threshold
-    command_cooldown: float = 1.5      # seconds between triggered commands
-    mouse_smoothing: float = 0.4        # smoothing factor for cursor movement
+    gesture_sensitivity: float = 0.65  # min confidence threshold
+    command_cooldown: float = 1.2      # seconds between triggered commands
+    mouse_smoothing: float = 0.35     # smoothing factor for cursor movement
     
     camera_index: int = 0
     camera_enabled: bool = True
@@ -19,7 +19,6 @@ class SystemSettings(BaseModel):
     mqtt_broker: str = "broker.hivemq.com"
     mqtt_port: int = 1883
     
-    # Configurable app launch paths (can be expanded via env)
     browser_path: str = os.getenv("BROWSER_PATH", "chrome")
 
 settings = SystemSettings()
