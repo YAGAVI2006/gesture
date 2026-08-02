@@ -1,6 +1,11 @@
 import pytest
 from app.gesture.classifier import GestureClassifier
-from app.gesture.detector import LandmarkPoint
+
+class LandmarkPoint:
+    def __init__(self, x, y, z=0.0):
+        self.x = x
+        self.y = y
+        self.z = z
 
 def test_calculate_distance():
     classifier = GestureClassifier()
