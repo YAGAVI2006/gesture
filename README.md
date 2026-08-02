@@ -1,5 +1,10 @@
 # AI-Powered Gesture-Based Smart Human–Computer Interaction & IoT Control System
 
+[![CI Pipeline](https://github.com/YAGAVI2006/gesture/actions/workflows/ci.yml/badge.svg)](https://github.com/YAGAVI2006/gesture/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![React 19](https://img.shields.io/badge/react-19.0-cyan.svg)](https://react.dev/)
+
 An enterprise-grade, full-stack Human-Computer Interaction (HCI) and Internet of Things (IoT) control system powered by Computer Vision and AI. The application leverages a standard webcam to detect 21 3D hand landmarks in real time using **MediaPipe**, classifies static and dynamic gestures, and translates them into system cursor movements, PowerPoint slide controls, and simulated smart IoT devices (**Smart Light** and **Smart Fan**).
 
 ---
@@ -40,7 +45,7 @@ graph TD
    - **Index Finger Pointing** → Move mouse cursor smoothly (with exponential moving average interpolation).
    - **Peace Gesture** → Mouse left click.
    - **Pinch Gesture** → Mouse double click / select.
-   - Configurable safety cooldown (default 1.5s) to eliminate accidental double-triggers.
+   - Configurable safety cooldown (default 1.2s) to eliminate accidental double-triggers.
 3. **PowerPoint Presentation Control**:
    - **Swipe Right** → Next slide.
    - **Swipe Left** → Previous slide.
@@ -55,9 +60,10 @@ graph TD
 6. **Real-Time Web Dashboard (React + Tailwind CSS + Recharts)**:
    - High-contrast dark mode glassmorphism UI.
    - Live MJPEG video stream canvas.
-   - Interactive activity log stream with CSV export.
-   - System usage analytics & Recharts visual graphs.
-   - Manual override controls for offline testing.
+   - Real-time WebSocket synchronization (`ws://localhost:8000/ws`).
+   - Filterable activity log stream with live text search & CSV export.
+   - Recharts visual graphs for gesture breakdown and trigger sources.
+   - Manual override toolbar, hotkeys (`L`, `F`, `P`), and settings modal.
 
 ---
 
@@ -85,42 +91,37 @@ graph TD
 
 ## 📦 Installation & Setup Guide
 
-### 1. Prerequisites
-- **Python**: 3.9 or higher installed.
-- **Node.js**: v18 or higher installed.
-- **Webcam**: Standard USB or built-in laptop webcam (Optional; app will automatically render a synthetic stream if no camera is attached).
-
-### 2. Backend Setup
+### 1. Local Setup
 ```bash
-# Navigate to backend directory
+# Backend Setup
 cd backend
-
-# Install Python dependencies
 pip install -r requirements.txt
-
-# Start the FastAPI server & AI Gesture Engine
 python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-```
-> The API server will start on `http://localhost:8000`. API documentation is available at `http://localhost:8000/docs`.
 
-### 3. Frontend Setup
-```bash
-# Open a new terminal and navigate to frontend directory
+# Frontend Setup (in a new terminal)
 cd frontend
-
-# Install Node dependencies
 npm install
-
-# Start Vite dev server
 npm run dev
 ```
-> The Web Dashboard will open on `http://localhost:5173`.
+
+### 2. Single-Command Docker Deployment
+```bash
+docker-compose up --build
+```
+> Access dashboard on `http://localhost:80` and backend API on `http://localhost:8000`.
+
+### 3. Automated Testing
+```bash
+cd backend
+pytest
+```
 
 ---
 
 ## 📚 Documentation & Integration
 
 Detailed technical documentation is available in the `docs/` folder:
+- [Visual Gesture Guide](file:///c:/Users/HP/Desktop/gesture/docs/gesture_guide.md)
 - [Architecture Overview](file:///c:/Users/HP/Desktop/gesture/docs/architecture.md)
 - [API & WebSocket Specification](file:///c:/Users/HP/Desktop/gesture/docs/api.md)
 - [Project Flow & Data Pipeline](file:///c:/Users/HP/Desktop/gesture/docs/project-flow.md)
@@ -129,4 +130,4 @@ Detailed technical documentation is available in the `docs/` folder:
 ---
 
 ## 📄 License
-Engineering Final-Year Capstone Project — Open Source & Extensible Architecture.
+Released under the [MIT License](LICENSE).
