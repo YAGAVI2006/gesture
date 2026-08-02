@@ -12,6 +12,7 @@ import SettingsModal from './components/SettingsModal';
 
 import { sysWS } from './services/websocket';
 import { getActivityLogs } from './services/api';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 
 export default function App() {
   const [telemetry, setTelemetry] = useState(null);
@@ -19,7 +20,9 @@ export default function App() {
   const [logs, setLogs] = useState([]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  // Fetch initial activity logs
+  // Keyboard shortcut listener ('L', 'F', 'P')
+  useKeyboardShortcuts(telemetry);
+
   const fetchLogs = async () => {
     try {
       const data = await getActivityLogs(50);
@@ -31,8 +34,6 @@ export default function App() {
 
   useEffect(() => {
     fetchLogs();
-
-    // Connect WebSocket
     sysWS.connect();
 
     const unsubTelemetry = sysWS.subscribeTelemetry((data) => {
@@ -57,16 +58,13 @@ export default function App() {
 
   return (
     <div className="min-h-screen pb-12">
-      {/* Navigation Header */}
       <Header
         isWsConnected={isWsConnected}
         telemetry={telemetry}
         onOpenSettings={() => setIsSettingsOpen(true)}
       />
 
-      {/* Main Container */}
       <main className="max-w-7xl mx-auto px-4 md:px-6 space-y-6">
-        {/* Row 1: Vision Stream & AI Gesture Card */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             <CameraFeed telemetry={telemetry} />
@@ -76,7 +74,6 @@ export default function App() {
           </div>
         </div>
 
-        {/* Row 2: HCI Controls & IoT Simulation */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1">
             <ComputerControlCard telemetry={telemetry} />
@@ -86,10 +83,8 @@ export default function App() {
           </div>
         </div>
 
-        {/* Manual Override Bar */}
         <ManualControlBar telemetry={telemetry} />
 
-        {/* Row 3: Voice Control & Activity Logs */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1">
             <VoiceCard telemetry={telemetry} />
@@ -99,11 +94,9 @@ export default function App() {
           </div>
         </div>
 
-        {/* System Analytics Charts */}
         <AnalyticsView />
       </main>
 
-      {/* Settings Modal */}
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
