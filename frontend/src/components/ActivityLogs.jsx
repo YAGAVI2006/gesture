@@ -1,13 +1,19 @@
 import React, { useState } from 'react';
-import { ListFilter, Trash2, Download, History, Sparkles, Mic, Hand, UserCheck } from 'lucide-react';
+import { ListFilter, Trash2, Download, History, Search, Hand, Mic, UserCheck } from 'lucide-react';
 import { clearActivityLogs } from '../services/api';
 
 export default function ActivityLogs({ logs = [], onRefreshLogs }) {
   const [filterSource, setFilterSource] = useState('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const filteredLogs = logs.filter((log) => {
-    if (filterSource === 'ALL') return true;
-    return log.source?.toUpperCase() === filterSource;
+    const matchesSource = filterSource === 'ALL' || log.source?.toUpperCase() === filterSource;
+    const searchLower = searchQuery.toLowerCase();
+    const matchesSearch = !searchQuery || 
+      log.gesture?.toLowerCase().includes(searchLower) ||
+      log.command?.toLowerCase().includes(searchLower) ||
+      log.device?.toLowerCase().includes(searchLower);
+    return matchesSource && matchesSearch;
   });
 
   const handleClear = async () => {
@@ -58,7 +64,6 @@ export default function ActivityLogs({ logs = [], onRefreshLogs }) {
 
   return (
     <div className="glass-panel p-5 rounded-2xl border border-slate-800/80">
-      {/* Top Action Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-2">
           <History className="w-5 h-5 text-cyan-400" />
@@ -68,8 +73,19 @@ export default function ActivityLogs({ logs = [], onRefreshLogs }) {
           </span>
         </div>
 
-        {/* Filters and Controls */}
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Search Box */}
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+            <input
+              type="text"
+              placeholder="Search logs..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8 pr-3 py-1 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500/50"
+            />
+          </div>
+
           <div className="flex bg-slate-900 p-1 rounded-xl border border-slate-800 text-xs">
             {['ALL', 'GESTURE', 'VOICE', 'MANUAL'].map((src) => (
               <button
@@ -102,7 +118,6 @@ export default function ActivityLogs({ logs = [], onRefreshLogs }) {
         </div>
       </div>
 
-      {/* Logs Table */}
       <div className="max-h-64 overflow-y-auto rounded-xl border border-slate-800/80 bg-slate-950/60">
         <table className="w-full text-left border-collapse text-xs">
           <thead className="bg-slate-900 text-slate-400 font-mono sticky top-0 border-b border-slate-800">
@@ -128,7 +143,7 @@ export default function ActivityLogs({ logs = [], onRefreshLogs }) {
             ) : (
               <tr>
                 <td colSpan={5} className="py-8 text-center text-slate-500 font-sans">
-                  No activity events recorded yet. Try using gestures or manual buttons!
+                  No matching activity events found.
                 </td>
               </tr>
             )}
