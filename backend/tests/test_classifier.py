@@ -1,5 +1,6 @@
 import pytest
-from app.gesture.classifier import GestureClassifier, LandmarkPoint
+from app.gesture.classifier import GestureClassifier
+from app.gesture.detector import LandmarkPoint
 
 def test_calculate_distance():
     classifier = GestureClassifier()
@@ -17,7 +18,6 @@ def test_no_hand_classification():
 def test_finger_extension_check():
     classifier = GestureClassifier()
     landmarks = [LandmarkPoint(0.5, 0.8, 0.0)] * 21
-    # Set wrist at bottom, tip far away at top
     landmarks[0] = LandmarkPoint(0.5, 0.9, 0.0)   # Wrist
     landmarks[5] = LandmarkPoint(0.5, 0.7, 0.0)   # Index MCP
     landmarks[6] = LandmarkPoint(0.5, 0.5, 0.0)   # Index PIP
