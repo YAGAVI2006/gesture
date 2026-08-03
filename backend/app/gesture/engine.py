@@ -8,6 +8,7 @@ from app.gesture.classifier import GestureClassifier
 from app.computer_control.controller import computer_controller
 from app.presentation.controller import presentation_controller
 from app.iot.manager import iot_manager
+from app.app_control.launcher import app_launcher
 from app.voice.listener import voice_listener
 from app.services.logger import log_activity
 
@@ -73,9 +74,8 @@ class GestureEngine:
                 if self.cap and self.cap.isOpened():
                     ret, raw_frame = self.cap.read()
                     if ret:
-                        frame = cv2.flip(raw_frame, 1)  # Mirror frame horizontally
+                        frame = cv2.flip(raw_frame, 1)
 
-                # Synthetic frame fallback if camera is unavailable or disconnected
                 if frame is None:
                     frame = np.zeros((480, 640, 3), dtype=np.uint8)
                     cv2.putText(frame, "SIMULATED CAMERA STREAM", (160, 220),
@@ -83,10 +83,8 @@ class GestureEngine:
                     cv2.putText(frame, "Camera offline or disconnected", (170, 260),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (180, 180, 180), 1)
 
-                # Process frame with Hand Detector
                 processed_frame, landmarks, is_hand = self.detector.process_frame(frame)
                 
-                # FPS Calculation
                 curr_time = time.time()
                 self.fps = round(1.0 / (curr_time - prev_time + 1e-6), 1)
                 prev_time = curr_time
@@ -103,8 +101,8 @@ class GestureEngine:
                     self.current_gesture = "No Hand" if not is_hand else "Control Disabled"
                     self.current_confidence = 0.0
 
-                # Draw visual overlay on video frame
-                cv2.rectangle(processed_frame, (10, 10), (320, 90), (20, 24, 33), -1)
+                # Draw visual overlay
+                cv2.rectangle(processed_frame, (10, 10), (340, 90), (20, 24, 33), -1)
                 cv2.putText(processed_frame, f"Gesture: {self.current_gesture}", (20, 35),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 255, 170), 2)
                 cv2.putText(processed_frame, f"Confidence: {int(self.current_confidence * 100)}%", (20, 60),
@@ -112,20 +110,18 @@ class GestureEngine:
                 cv2.putText(processed_frame, f"FPS: {self.fps}", (20, 80),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.45, (150, 150, 150), 1)
 
-                # Encode frame to JPEG
                 ret, buffer = cv2.imencode('.jpg', processed_frame)
                 if ret:
                     with self.lock:
                         self.latest_frame_bytes = buffer.tobytes()
 
-                # Trigger telemetry updates
                 if self.telemetry_callback:
                     self.telemetry_callback(self.get_telemetry())
 
-            except Exception as loop_err:
+            except Exception:
                 pass
 
-            time.sleep(0.03)  # ~30 FPS loop
+            time.sleep(0.03)
 
     def _dispatch_gesture_command(self, gesture: str, confidence: float, landmarks):
         now = time.time()
@@ -137,7 +133,7 @@ class GestureEngine:
                 computer_controller.move_cursor(index_tip.x, index_tip.y)
             return
 
-        # Cooldown check for state-changing commands
+        # Cooldown check
         if now - self.last_command_time < settings.command_cooldown:
             return
 
@@ -145,30 +141,35 @@ class GestureEngine:
         cmd_name = ""
         device_affected = ""
 
-        # 2. Fist -> Turn IoT Light ON
-        if gesture == "Fist" and settings.iot_control_enabled:
-            iot_manager.execute_command("light", "ON", source="gesture")
-            executed, cmd_name, device_affected = True, "LIGHT_ON", "Smart Light"
+        # 2. Pinch -> Open Notepad ('N')
+        if gesture == "Pinch":
+            res = app_launcher.launch_app("notepad", source="gesture")
+            if res.get("status") == "success":
+                executed, cmd_name, device_affected = True, "OPEN_NOTEPAD", "Notepad"
 
-        # 3. Open Palm -> Turn IoT Fan OFF
-        elif gesture == "Open Palm" and settings.iot_control_enabled:
-            iot_manager.execute_command("fan", "OFF", source="gesture")
-            executed, cmd_name, device_affected = True, "FAN_OFF", "Smart Fan"
+        # 3. Fist -> Open Windows Camera App ('C')
+        elif gesture == "Fist":
+            res = app_launcher.launch_app("camera", source="gesture")
+            if res.get("status") == "success":
+                executed, cmd_name, device_affected = True, "OPEN_CAMERA", "Camera App"
 
-        # 4. Thumbs Up -> Turn IoT Light OFF
-        elif gesture == "Thumbs Up" and settings.iot_control_enabled:
-            iot_manager.execute_command("light", "OFF", source="gesture")
-            executed, cmd_name, device_affected = True, "LIGHT_OFF", "Smart Light"
+        # 4. Thumbs Up -> Open Chrome Browser
+        elif gesture == "Thumbs Up":
+            res = app_launcher.launch_app("browser", source="gesture")
+            if res.get("status") == "success":
+                executed, cmd_name, device_affected = True, "OPEN_CHROME", "Chrome Browser"
 
-        # 5. Peace -> Mouse Left Click
-        elif gesture == "Peace" and settings.computer_control_enabled:
-            if computer_controller.click():
-                executed, cmd_name, device_affected = True, "MOUSE_CLICK", "Computer"
+        # 5. Peace -> Open Calculator
+        elif gesture == "Peace":
+            res = app_launcher.launch_app("calculator", source="gesture")
+            if res.get("status") == "success":
+                executed, cmd_name, device_affected = True, "OPEN_CALCULATOR", "Calculator"
 
-        # 6. Pinch -> Mouse Double Click / Confirm
-        elif gesture == "Pinch" and settings.computer_control_enabled:
-            if computer_controller.double_click():
-                executed, cmd_name, device_affected = True, "MOUSE_DOUBLE_CLICK", "Computer"
+        # 6. Open Palm -> Open Command Prompt Terminal
+        elif gesture == "Open Palm":
+            res = app_launcher.launch_app("terminal", source="gesture")
+            if res.get("status") == "success":
+                executed, cmd_name, device_affected = True, "OPEN_TERMINAL", "Command Prompt"
 
         # 7. Swipe Right -> Next Slide
         elif gesture == "Swipe Right" and settings.presentation_mode:
@@ -196,6 +197,7 @@ class GestureEngine:
             "last_command": self.last_executed_command,
             "settings": settings.dict(),
             "iot_devices": iot_manager.get_all_devices_status(),
+            "last_app_launched": app_launcher.last_launched_app,
             "voice_status": voice_listener.mic_status,
             "last_voice_command": voice_listener.last_command
         }

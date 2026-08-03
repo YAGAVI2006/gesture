@@ -8,6 +8,7 @@ from app.db.models import ActivityLog
 from app.config import settings, SystemSettings
 from app.gesture.engine import gesture_engine
 from app.iot.manager import iot_manager
+from app.app_control.launcher import app_launcher
 from app.presentation.controller import presentation_controller
 from app.voice.listener import voice_listener
 from app.services.logger import log_activity
@@ -33,7 +34,6 @@ def clear_logs(db: Session = Depends(get_db)):
 def get_analytics(db: Session = Depends(get_db)):
     total_logs = db.query(ActivityLog).count()
     
-    # Most frequent gesture
     most_frequent_gesture_query = (
         db.query(ActivityLog.gesture, func.count(ActivityLog.gesture).label("count"))
         .filter(ActivityLog.gesture.isnot(None))
@@ -43,17 +43,14 @@ def get_analytics(db: Session = Depends(get_db)):
     )
     most_frequent_gesture = most_frequent_gesture_query[0] if most_frequent_gesture_query else "None"
 
-    # Total IoT commands
     total_iot_commands = db.query(ActivityLog).filter(
-        ActivityLog.command.in_(["LIGHT_ON", "LIGHT_OFF", "FAN_ON", "FAN_OFF"])
+        ActivityLog.command.like("OPEN_%") | ActivityLog.command.in_(["LIGHT_ON", "LIGHT_OFF", "FAN_ON", "FAN_OFF"])
     ).count()
 
-    # Total computer commands
     total_computer_commands = db.query(ActivityLog).filter(
         ActivityLog.command.in_(["MOUSE_CLICK", "MOUSE_DOUBLE_CLICK", "SLIDE_NEXT", "SLIDE_PREV"])
     ).count()
 
-    # Gesture breakdown
     gesture_counts = (
         db.query(ActivityLog.gesture, func.count(ActivityLog.gesture))
         .filter(ActivityLog.gesture.isnot(None))
@@ -62,7 +59,6 @@ def get_analytics(db: Session = Depends(get_db)):
     )
     gesture_breakdown = [{"name": g[0], "value": g[1]} for g in gesture_counts]
 
-    # Source breakdown
     source_counts = (
         db.query(ActivityLog.source, func.count(ActivityLog.source))
         .group_by(ActivityLog.source)
@@ -89,7 +85,6 @@ def update_settings(new_settings: Dict[str, Any]):
         if hasattr(settings, key):
             setattr(settings, key, value)
     
-    # Handle voice listener state change
     if settings.voice_control_enabled:
         voice_listener.start()
     else:
@@ -109,6 +104,14 @@ def control_camera(payload: Dict[str, str]):
         log_activity("System", 1.0, "CAMERA_STOPPED", "Webcam", source="manual")
         return {"status": "success", "message": "Camera stopped"}
     raise HTTPException(status_code=400, detail="Invalid action. Use 'start' or 'stop'.")
+
+@router.post("/control/app")
+def launch_application(payload: Dict[str, str]):
+    app_key = payload.get("app_name", "")
+    res = app_launcher.launch_app(app_key, source="manual")
+    if res.get("status") == "success":
+        log_activity("Manual Override", 1.0, res.get("command"), res.get("app_name"), source="manual")
+    return res
 
 @router.post("/control/iot")
 def control_iot(payload: Dict[str, str]):

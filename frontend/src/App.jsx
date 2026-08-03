@@ -3,6 +3,7 @@ import Header from './components/Header';
 import CameraFeed from './components/CameraFeed';
 import GestureCard from './components/GestureCard';
 import ComputerControlCard from './components/ComputerControlCard';
+import LaptopAppCards from './components/LaptopAppCards';
 import IoTDeviceCards from './components/IoTDeviceCards';
 import VoiceCard from './components/VoiceCard';
 import ActivityLogs from './components/ActivityLogs';
@@ -20,7 +21,6 @@ export default function App() {
   const [logs, setLogs] = useState([]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  // Keyboard shortcut listener ('L', 'F', 'P')
   useKeyboardShortcuts(telemetry);
 
   const fetchLogs = async () => {
@@ -65,6 +65,7 @@ export default function App() {
       />
 
       <main className="max-w-7xl mx-auto px-4 md:px-6 space-y-6">
+        {/* Row 1: Vision Stream & AI Gesture Card */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             <CameraFeed telemetry={telemetry} />
@@ -74,6 +75,10 @@ export default function App() {
           </div>
         </div>
 
+        {/* Laptop Applications Section */}
+        <LaptopAppCards telemetry={telemetry} />
+
+        {/* Row 2: HCI Controls & Virtual IoT Simulation */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1">
             <ComputerControlCard telemetry={telemetry} />
@@ -85,6 +90,7 @@ export default function App() {
 
         <ManualControlBar telemetry={telemetry} />
 
+        {/* Row 3: Voice Control & Activity Logs */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1">
             <VoiceCard telemetry={telemetry} />

@@ -37,6 +37,11 @@ export const controlCamera = async (action) => {
   return res.data;
 };
 
+export const launchApp = async (appName) => {
+  const res = await axios.post(`${API_BASE}/control/app`, { app_name: appName });
+  return res.data;
+};
+
 export const controlIoTDevice = async (device, action) => {
   const res = await axios.post(`${API_BASE}/control/iot`, { device, action });
   return res.data;
