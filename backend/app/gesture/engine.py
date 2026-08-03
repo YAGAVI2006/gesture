@@ -28,6 +28,8 @@ class GestureEngine:
         self.camera_status = "STOPPED"
         self.last_command_time = 0.0
         self.last_executed_command = "NONE"
+        self.banner_text = ""
+        self.banner_expiry = 0.0
         
         self.latest_frame_bytes = None
         self.lock = threading.Lock()
@@ -101,14 +103,22 @@ class GestureEngine:
                     self.current_gesture = "No Hand" if not is_hand else "Control Disabled"
                     self.current_confidence = 0.0
 
-                # Draw visual overlay
-                cv2.rectangle(processed_frame, (10, 10), (340, 90), (20, 24, 33), -1)
-                cv2.putText(processed_frame, f"Gesture: {self.current_gesture}", (20, 35),
+                # Top info overlay box
+                cv2.rectangle(processed_frame, (10, 10), (360, 95), (20, 24, 33), -1)
+                cv2.rectangle(processed_frame, (10, 10), (360, 95), (0, 215, 255), 1)
+                cv2.putText(processed_frame, f"Gesture: {self.current_gesture}", (20, 38),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 255, 170), 2)
-                cv2.putText(processed_frame, f"Confidence: {int(self.current_confidence * 100)}%", (20, 60),
+                cv2.putText(processed_frame, f"Confidence: {int(self.current_confidence * 100)}%", (20, 63),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.55, (220, 220, 220), 1)
-                cv2.putText(processed_frame, f"FPS: {self.fps}", (20, 80),
+                cv2.putText(processed_frame, f"FPS: {self.fps}", (20, 84),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.45, (150, 150, 150), 1)
+
+                # Bright On-Screen Action Banner Notification
+                if self.banner_text and curr_time < self.banner_expiry:
+                    h, w, _ = processed_frame.shape
+                    cv2.rectangle(processed_frame, (0, h - 50), (w, h), (16, 185, 129), -1)
+                    cv2.putText(processed_frame, self.banner_text, (20, h - 18),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.75, (255, 255, 255), 2)
 
                 ret, buffer = cv2.imencode('.jpg', processed_frame)
                 if ret:
@@ -140,50 +150,60 @@ class GestureEngine:
         executed = False
         cmd_name = ""
         device_affected = ""
+        banner_msg = ""
 
         # 2. Pinch -> Open Notepad ('N')
         if gesture == "Pinch":
             res = app_launcher.launch_app("notepad", source="gesture")
             if res.get("status") == "success":
                 executed, cmd_name, device_affected = True, "OPEN_NOTEPAD", "Notepad"
+                banner_msg = "🚀 LAUNCHED: Notepad (notepad.exe)"
 
         # 3. Fist -> Open Windows Camera App ('C')
         elif gesture == "Fist":
             res = app_launcher.launch_app("camera", source="gesture")
             if res.get("status") == "success":
                 executed, cmd_name, device_affected = True, "OPEN_CAMERA", "Camera App"
+                banner_msg = "📷 LAUNCHED: Camera App"
 
         # 4. Thumbs Up -> Open Chrome Browser
         elif gesture == "Thumbs Up":
             res = app_launcher.launch_app("browser", source="gesture")
             if res.get("status") == "success":
                 executed, cmd_name, device_affected = True, "OPEN_CHROME", "Chrome Browser"
+                banner_msg = "🌐 LAUNCHED: Chrome Browser"
 
         # 5. Peace -> Open Calculator
         elif gesture == "Peace":
             res = app_launcher.launch_app("calculator", source="gesture")
             if res.get("status") == "success":
                 executed, cmd_name, device_affected = True, "OPEN_CALCULATOR", "Calculator"
+                banner_msg = "🧮 LAUNCHED: Calculator (calc.exe)"
 
         # 6. Open Palm -> Open Command Prompt Terminal
         elif gesture == "Open Palm":
             res = app_launcher.launch_app("terminal", source="gesture")
             if res.get("status") == "success":
                 executed, cmd_name, device_affected = True, "OPEN_TERMINAL", "Command Prompt"
+                banner_msg = "💻 LAUNCHED: Command Prompt (cmd.exe)"
 
         # 7. Swipe Right -> Next Slide
         elif gesture == "Swipe Right" and settings.presentation_mode:
             if presentation_controller.next_slide():
                 executed, cmd_name, device_affected = True, "SLIDE_NEXT", "Presentation"
+                banner_msg = "👉 ACTION: Next Slide"
 
         # 8. Swipe Left -> Prev Slide
         elif gesture == "Swipe Left" and settings.presentation_mode:
             if presentation_controller.prev_slide():
                 executed, cmd_name, device_affected = True, "SLIDE_PREV", "Presentation"
+                banner_msg = "👈 ACTION: Previous Slide"
 
         if executed:
             self.last_command_time = now
             self.last_executed_command = cmd_name
+            self.banner_text = banner_msg
+            self.banner_expiry = now + 2.5
             log_activity(gesture, confidence, cmd_name, device_affected, source="gesture")
 
     def get_telemetry(self):
